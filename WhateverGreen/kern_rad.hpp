@@ -25,6 +25,7 @@ public:
 	 *  AMD Hardware kext index
 	 */
 	enum HardwareIndex {
+		IndexRadeonAccelerator, 	// MountainLion X3000/4000
 		IndexRadeonHardwareX4000,
 		IndexRadeonHardwareX5000,
 		IndexRadeonHardwareX6000,
@@ -33,11 +34,11 @@ public:
 		IndexRadeonHardwareX4150,
 		IndexRadeonHardwareX4200,
 		IndexRadeonHardwareX4250,
-		IndexRadeonAccelerator,
 		MaxRadeonHardware,
 		MaxRadeonHardwareCatalina = IndexRadeonHardwareX6000 + 1,
 		MaxRadeonHardwareMojave = IndexRadeonHardwareX5000 + 1,
-		MaxRadeonHardwareModernHighSierra = IndexRadeonHardwareX3000 + 1
+		MaxRadeonHardwareModernHighSierra = IndexRadeonHardwareX3000 + 1,
+		MaxRadeonHardwareMountainLion = IndexRadeonAccelerator + 1
 	};
 
 	/**
@@ -200,7 +201,8 @@ private:
 	 */
 	const char *getFrameBufferProcNames[MaxRadeonHardware][MaxGetFrameBufferProcs] {
 		[IndexRadeonAccelerator]   = {
-//			"__ZN15AMDR8xxHardware25getFrameBufferBaseAddressEv"
+			// ML AMDRadeonAccelerator uses AMDR8xx implementation for GCN1
+			"__ZN15AMDR8xxHardware25getFrameBufferBaseAddressEv"
 		},
 		[IndexRadeonHardwareX3000] = {
 			"__ZN15AMDR8xxHardware25getFrameBufferBaseAddressEv"
@@ -223,15 +225,6 @@ private:
 			"__ZN28AMDRadeonX4250_AMDVIHardware25getFrameBufferBaseAddressEv"
 		},
 	};
-	
-	/**
-	 *  Cail_Sumo_ulNoBiosMemoryConfigAndSize
-	 */
-	using t_noBiosConfig = void * (*)(void *gpu);
-	using t_writeMmRegisterULong = void * (*)(void *gpu, unsigned int reg, int val);
-	t_noBiosConfig orgNoBiosMemory {nullptr};
-	t_writeMmRegisterULong orgReadMmRegisterULong {nullptr};
-	static void *wrapNoBiosMemory(void *unknownPtr);
 	
 	using t_getConnProps = IOReturn (*)(void *atomBiosDce60, uint8_t object_id, RADConnectors::LegacyConnector *con);
 	static IOReturn wrapGetConnProps(void *atomBiosDce60, uint8_t object_id, RADConnectors::LegacyConnector *con);

@@ -15,12 +15,17 @@
 
 #include "kern_rad.hpp"
 
+// 10.8
+static const char *pathMLSupport[] 			{ "/System/Library/Extensions/ATISupport.kext/Contents/MacOS/AMDSupport" };
+static const char *pathMLFramebuffer[]		{ "/System/Library/Extensions/ATIFramebuffer.kext/Contents/MacOS/AMDFramebuffer" };
+static const char *pathRadeonAccel[]		{ "/System/Library/Extensions/AMDRadeonAccelerator.kext/Contents/MacOS/AMDRadeonAccelerator" };
+
+// 10.9+
+static const char *pathSupport[]			{ "/System/Library/Extensions/AMDSupport.kext/Contents/MacOS/AMDSupport" };
 static const char *pathFramebuffer[]		{ "/System/Library/Extensions/AMDFramebuffer.kext/Contents/MacOS/AMDFramebuffer" };
 static const char *pathRedeonX6000Framebuffer[]	{ "/System/Library/Extensions/AMDRadeonX6000Framebuffer.kext/Contents/MacOS/AMDRadeonX6000Framebuffer" };
 static const char *pathLegacyFramebuffer[]	{ "/System/Library/Extensions/AMDLegacyFramebuffer.kext/Contents/MacOS/AMDLegacyFramebuffer" };
-static const char *pathSupport[]			{ "/System/Library/Extensions/AMDSupport.kext/Contents/MacOS/AMDSupport" };
 static const char *pathLegacySupport[]		{ "/System/Library/Extensions/AMDLegacySupport.kext/Contents/MacOS/AMDLegacySupport" };
-static const char *pathRadeonAccel[]		{ "/System/Library/Extensions/AMDRadeonAccelerator.kext/Contents/MacOS/AMDRadeonAccelerator" };
 static const char *pathRadeonX3000[]        { "/System/Library/Extensions/AMDRadeonX3000.kext/Contents/MacOS/AMDRadeonX3000" };
 static const char *pathRadeonX4000[]        { "/System/Library/Extensions/AMDRadeonX4000.kext/Contents/MacOS/AMDRadeonX4000" };
 static const char *pathRadeonX4100[]        { "/System/Library/Extensions/AMDRadeonX4100.kext/Contents/MacOS/AMDRadeonX4100" };
@@ -57,7 +62,7 @@ static KernelPatcher::KextInfo kextRadeonX6000Framebuffer
 { "com.apple.kext.AMDRadeonX6000Framebuffer", pathRedeonX6000Framebuffer, arrsize(pathRedeonX6000Framebuffer), {}, {}, KernelPatcher::KextInfo::Unloaded };
 
 static KernelPatcher::KextInfo kextRadeonHardware[RAD::MaxRadeonHardware] {
-	[RAD::IndexRadeonAccelerator]   = { idRadeonAccel   , pathRadeonAccel, arrsize(pathRadeonAccel), {}, {}, KernelPatcher::KextInfo::Unloaded },
+	[RAD::IndexRadeonAccelerator  ] = { idRadeonAccel	, pathRadeonAccel, arrsize(pathRadeonAccel), {}, {}, KernelPatcher::KextInfo::Unloaded },
 	[RAD::IndexRadeonHardwareX3000] = { idRadeonX3000New, pathRadeonX3000, arrsize(pathRadeonX3000), {}, {}, KernelPatcher::KextInfo::Unloaded },
 	[RAD::IndexRadeonHardwareX4100] = { idRadeonX4100New, pathRadeonX4100, arrsize(pathRadeonX4100), {}, {}, KernelPatcher::KextInfo::Unloaded },
 	[RAD::IndexRadeonHardwareX4150] = { idRadeonX4150New, pathRadeonX4150, arrsize(pathRadeonX4150), {}, {}, KernelPatcher::KextInfo::Unloaded },
@@ -95,10 +100,15 @@ void RAD::init(bool enableNavi10Bkl) {
 	useCustomAgdpDecision = getKernelVersion() >= KernelVersion::Catalina;
 
 	// Certain displays do not support 32-bit colour output, so we have to force 24-bit.
-	if (getKernelVersion() >= KernelVersion::Sierra && force24BppMode) {
+	if (force24BppMode) {
+		if (getKernelVersion() == KernelVersion::MountainLion) {
+			kextRadeonFramebuffer.paths = pathMLFramebuffer;
+			kextRadeonFramebuffer.pathNum = arrsize(pathMLFramebuffer);
+		}
+		
 		lilu.onKextLoadForce(&kextRadeonFramebuffer);
 		// Mojave dropped legacy GPU support (5xxx and 6xxx).
-		if (getKernelVersion() < KernelVersion::Mojave)
+		if (getKernelVersion() >= KernelVersion::Sierra && getKernelVersion() < KernelVersion::Mojave)
 			lilu.onKextLoadForce(&kextRadeonLegacyFramebuffer);
 	}
 	
@@ -122,11 +132,17 @@ void RAD::init(bool enableNavi10Bkl) {
 	forceCodecInfo = checkKernelArgument("-radcodec");
 
 	// To support overriding connectors and -radvesa mode we need to patch AMDSupport.
+	if (getKernelVersion() == KernelVersion::MountainLion) {
+		kextRadeonSupport.paths = pathMLSupport;
+		kextRadeonSupport.pathNum = arrsize(pathMLSupport);
+	}
+	
 	lilu.onKextLoadForce(&kextRadeonSupport);
+	
 	// Mojave dropped legacy GPU support (5xxx and 6xxx).
-	if (getKernelVersion() < KernelVersion::Mojave)
+	if (getKernelVersion() >= KernelVersion::Sierra && getKernelVersion() < KernelVersion::Mojave)
 		lilu.onKextLoadForce(&kextRadeonLegacySupport);
-	else
+	else if (getKernelVersion() >= KernelVersion::Mojave)
 		lilu.onKextLoadForce(&kextPolarisController);
 
 	initHardwareKextMods();
@@ -336,7 +352,7 @@ bool RAD::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t ad
 	}
 
 	if (kextRadeonSupport.loadIndex == index) {
-		processConnectorOverrides(patcher, address, size, true);
+		processConnectorOverrides(patcher, address, size, getKernelVersion() >= KernelVersion::Sierra);
 
 		if (getKernelVersion() > KernelVersion::Mojave ||
 			(getKernelVersion() == KernelVersion::Mojave && getKernelMinorVersion() >= 5)) {
@@ -388,6 +404,8 @@ void RAD::initHardwareKextMods() {
 		maxHardwareKexts = MaxRadeonHardwareMojave;
 	else if (getKernelVersion() == KernelVersion::HighSierra && getKernelMinorVersion() >= 5)
 		maxHardwareKexts = MaxRadeonHardwareModernHighSierra;
+	else if (getKernelVersion() == KernelVersion::MountainLion)
+		maxHardwareKexts = MaxRadeonHardwareMountainLion;
 
 	// 10.13.4 fixed black screen issues
 	if (maxHardwareKexts != MaxRadeonHardware) {
@@ -400,10 +418,6 @@ void RAD::initHardwareKextMods() {
 			kextRadeonHardware[IndexRadeonHardwareX5000].switchOff();
 			kextRadeonHardware[IndexRadeonHardwareX6000].switchOff();
 		}
-	}
-
-	if (getKernelVersion() > KernelVersion::MountainLion) {
-		kextRadeonHardware[IndexRadeonAccelerator].switchOff();
 	}
 	
 	if (getKernelVersion() < KernelVersion::Catalina) {
@@ -431,6 +445,14 @@ void RAD::initHardwareKextMods() {
 			kextRadeonHardware[IndexRadeonHardwareX4150].switchOff();
 			kextRadeonHardware[IndexRadeonHardwareX4200].switchOff();
 		}
+	}
+	
+	if (getKernelVersion() == KernelVersion::MountainLion) {
+		// X3000 and X4000 got combined into AMDRadeonAccelerator
+		kextRadeonHardware[IndexRadeonHardwareX3000].switchOff();
+		kextRadeonHardware[IndexRadeonHardwareX4000].switchOff();
+	} else {
+		kextRadeonHardware[IndexRadeonAccelerator].switchOff();
 	}
 
 	lilu.onKextLoadForce(kextRadeonHardware, maxHardwareKexts);
@@ -548,21 +570,9 @@ void RAD::processHardwareKext(KernelPatcher &patcher, size_t hwIndex, mach_vm_ad
 
 	// Fix reported Accelerator name to support WhateverName.app
 	// Also fix GVA properties for X4000.
-	if (fixConfigName || hwIndex == IndexRadeonHardwareX4000 || hwIndex == IndexRadeonAccelerator) {
+	if (fixConfigName || hwIndex == IndexRadeonHardwareX4000) {
 		KernelPatcher::RouteRequest request(populateAccelConfigProcNames[hwIndex], wrapPopulateAccelConfig[hwIndex], orgPopulateAccelConfig[hwIndex]);
 		patcher.routeMultiple(hardware.loadIndex, &request, 1, address, size);
-	}
-	
-	if (hwIndex == IndexRadeonAccelerator) {
-		orgReadMmRegisterULong = (t_writeMmRegisterULong) patcher.solveSymbol(hardware.loadIndex, "_vWriteMmRegisterUlong");
-		KernelPatcher::RouteRequest request("_Atomcail_ulNoBiosMemoryConfigAndSize", wrapNoBiosMemory, orgNoBiosMemory);
-		patcher.routeMultiple(hardware.loadIndex, &request, 1, address, size);
-		if (patcher.getError() == KernelPatcher::Error::NoError) {
-			DBGLOG("rad", "routed Cail_Sumo_ulNoBiosMemoryConfigAndSize");
-		} else {
-			SYSLOG("rad", "Failed to patch Cail_Sumo_ulNoBiosMemoryConfigAndSize code %d", patcher.getError());
-			patcher.clearError();
-		}
 	}
 
 	// Enforce OpenGL support if requested
@@ -589,16 +599,6 @@ void RAD::processHardwareKext(KernelPatcher &patcher, size_t hwIndex, mach_vm_ad
 		KernelPatcher::RouteRequest request(getHWInfoProcNames[hwIndex], wrapGetHWInfo[hwIndex], orgGetHWInfo[hwIndex]);
 		patcher.routeMultiple(hardware.loadIndex, &request, 1, address, size);
 	}
-}
-
-void *RAD::wrapNoBiosMemory(void *unknownPtr) {
-	DBGLOG("rad", "No Bios Init called!");
-	t_writeMmRegisterULong writeFunc = callbackRAD->orgReadMmRegisterULong;
-	if (writeFunc != nullptr) {
-		writeFunc(unknownPtr, 0x1A07, 0x00);
-		writeFunc(unknownPtr, 0x1A04, 0x00);
-	}
-	return callbackRAD->orgNoBiosMemory(unknownPtr);
 }
 
 void RAD::mergeProperty(OSDictionary *props, const char *name, OSObject *value) {
@@ -805,7 +805,7 @@ IOReturn RAD::wrapGetConnProps(void *atomBiosDce60, uint8_t object_id, RADConnec
 		con->flags |= 0x040;
 		con->features |= 0x109;
 		con->type = 0x2; // LVDS
-		con->hotplug = 0;
+//		con->hotplug = 0;
 		return kIOReturnSuccess;
 	}
 	
