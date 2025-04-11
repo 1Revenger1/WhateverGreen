@@ -16,7 +16,7 @@
 #include "kern_rad.hpp"
 
 // 10.8
-static const char *pathMLSupport[] 			{ "/System/Library/Extensions/ATISupport.kext/Contents/MacOS/AMDSupport" };
+static const char *pathMLSupport[]			{ "/System/Library/Extensions/ATISupport.kext/Contents/MacOS/AMDSupport" };
 static const char *pathMLFramebuffer[]		{ "/System/Library/Extensions/ATIFramebuffer.kext/Contents/MacOS/AMDFramebuffer" };
 static const char *pathRadeonAccel[]		{ "/System/Library/Extensions/AMDRadeonAccelerator.kext/Contents/MacOS/AMDRadeonAccelerator" };
 
@@ -36,7 +36,7 @@ static const char *pathRadeonX5000[]        { "/System/Library/Extensions/AMDRad
 static const char *pathRadeonX6000[]        { "/System/Library/Extensions/AMDRadeonX6000.kext/Contents/MacOS/AMDRadeonX6000" };
 static const char *patchPolarisController[] { "/System/Library/Extensions/AMD9500Controller.kext/Contents/MacOS/AMD9500Controller" };
 
-static const char *idRadeonAccel	{"com.apple.AMDRadeonAccelerator"};
+static const char *idRadeonAccel    {"com.apple.AMDRadeonAccelerator"};
 static const char *idRadeonX3000New {"com.apple.kext.AMDRadeonX3000"};
 static const char *idRadeonX4000New {"com.apple.kext.AMDRadeonX4000"};
 static const char *idRadeonX4100New {"com.apple.kext.AMDRadeonX4100"};
@@ -62,7 +62,7 @@ static KernelPatcher::KextInfo kextRadeonX6000Framebuffer
 { "com.apple.kext.AMDRadeonX6000Framebuffer", pathRedeonX6000Framebuffer, arrsize(pathRedeonX6000Framebuffer), {}, {}, KernelPatcher::KextInfo::Unloaded };
 
 static KernelPatcher::KextInfo kextRadeonHardware[RAD::MaxRadeonHardware] {
-	[RAD::IndexRadeonAccelerator  ] = { idRadeonAccel	, pathRadeonAccel, arrsize(pathRadeonAccel), {}, {}, KernelPatcher::KextInfo::Unloaded },
+	[RAD::IndexRadeonAccelerator  ] = { idRadeonAccel   , pathRadeonAccel, arrsize(pathRadeonAccel), {}, {}, KernelPatcher::KextInfo::Unloaded },
 	[RAD::IndexRadeonHardwareX3000] = { idRadeonX3000New, pathRadeonX3000, arrsize(pathRadeonX3000), {}, {}, KernelPatcher::KextInfo::Unloaded },
 	[RAD::IndexRadeonHardwareX4100] = { idRadeonX4100New, pathRadeonX4100, arrsize(pathRadeonX4100), {}, {}, KernelPatcher::KextInfo::Unloaded },
 	[RAD::IndexRadeonHardwareX4150] = { idRadeonX4150New, pathRadeonX4150, arrsize(pathRadeonX4150), {}, {}, KernelPatcher::KextInfo::Unloaded },
@@ -799,13 +799,12 @@ void RAD::autocorrectConnectors(uint8_t *baseAddr, AtomDisplayObjectPath *displa
 }
 
 IOReturn RAD::wrapGetConnProps(void *atomBiosDce60, uint8_t object_id, RADConnectors::LegacyConnector *con) {
-	
 	if (object_id == CONNECTOR_OBJECT_ID_LVDS_eDP) {
 		SYSLOG("rad", "Correcting LVDS-eDP Connector - Original Flags 0x%x Features 0x%x Hotplug 0x%x", con->flags, con->features, con->hotplug);
-		con->flags |= 0x040;
+//		con->flags |= 0x040; // LVDS
+		con->flags |= 0x100; // DP
 		con->features |= 0x109;
-		con->type = 0x2; // LVDS
-//		con->hotplug = 0;
+		con->type = RADConnectors::ConnectorLVDS;
 		return kIOReturnSuccess;
 	}
 	

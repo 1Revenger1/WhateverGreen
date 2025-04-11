@@ -202,7 +202,7 @@ private:
 	const char *getFrameBufferProcNames[MaxRadeonHardware][MaxGetFrameBufferProcs] {
 		[IndexRadeonAccelerator]   = {
 			// ML AMDRadeonAccelerator uses AMDR8xx implementation for GCN1
-			"__ZN15AMDR8xxHardware25getFrameBufferBaseAddressEv"
+//			"__ZN15AMDR8xxHardware25getFrameBufferBaseAddressEv"
 		},
 		[IndexRadeonHardwareX3000] = {
 			"__ZN15AMDR8xxHardware25getFrameBufferBaseAddressEv"
