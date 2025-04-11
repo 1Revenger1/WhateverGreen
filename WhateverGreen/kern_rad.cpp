@@ -352,7 +352,7 @@ bool RAD::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t ad
 	}
 
 	if (kextRadeonSupport.loadIndex == index) {
-		processConnectorOverrides(patcher, address, size, getKernelVersion() >= KernelVersion::Sierra);
+		processConnectorOverrides(patcher, address, size, true);
 
 		if (getKernelVersion() > KernelVersion::Mojave ||
 			(getKernelVersion() == KernelVersion::Mojave && getKernelMinorVersion() >= 5)) {
@@ -570,7 +570,7 @@ void RAD::processHardwareKext(KernelPatcher &patcher, size_t hwIndex, mach_vm_ad
 
 	// Fix reported Accelerator name to support WhateverName.app
 	// Also fix GVA properties for X4000.
-	if (fixConfigName || hwIndex == IndexRadeonHardwareX4000) {
+	if (fixConfigName || hwIndex == IndexRadeonHardwareX4000 || hwIndex == IndexRadeonAccelerator) {
 		KernelPatcher::RouteRequest request(populateAccelConfigProcNames[hwIndex], wrapPopulateAccelConfig[hwIndex], orgPopulateAccelConfig[hwIndex]);
 		patcher.routeMultiple(hardware.loadIndex, &request, 1, address, size);
 	}
