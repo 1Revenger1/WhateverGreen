@@ -801,9 +801,9 @@ void RAD::autocorrectConnectors(uint8_t *baseAddr, AtomDisplayObjectPath *displa
 IOReturn RAD::wrapGetConnProps(void *atomBiosDce60, uint8_t object_id, RADConnectors::LegacyConnector *con) {
 	if (object_id == CONNECTOR_OBJECT_ID_LVDS_eDP) {
 		SYSLOG("rad", "Correcting LVDS-eDP Connector - Original Flags 0x%x Features 0x%x Hotplug 0x%x", con->flags, con->features, con->hotplug);
-//		con->flags |= 0x040; // LVDS
-		con->flags |= 0x100; // DP
-		con->features |= 0x109;
+		con->flags |= 0x040; // LVDS
+//		con->flags |= 0x100; // DP
+		con->features |= 0x909;
 		con->type = RADConnectors::ConnectorLVDS;
 		return kIOReturnSuccess;
 	}
