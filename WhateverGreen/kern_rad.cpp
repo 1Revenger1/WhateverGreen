@@ -15,10 +15,16 @@
 
 #include "kern_rad.hpp"
 
+// 10.8
+static const char *pathMLSupport[]			{ "/System/Library/Extensions/ATISupport.kext/Contents/MacOS/AMDSupport" };
+static const char *pathMLFramebuffer[]		{ "/System/Library/Extensions/ATIFramebuffer.kext/Contents/MacOS/AMDFramebuffer" };
+static const char *pathRadeonAccel[]		{ "/System/Library/Extensions/AMDRadeonAccelerator.kext/Contents/MacOS/AMDRadeonAccelerator" };
+
+// 10.9+
+static const char *pathSupport[]			{ "/System/Library/Extensions/AMDSupport.kext/Contents/MacOS/AMDSupport" };
 static const char *pathFramebuffer[]		{ "/System/Library/Extensions/AMDFramebuffer.kext/Contents/MacOS/AMDFramebuffer" };
 static const char *pathRedeonX6000Framebuffer[]	{ "/System/Library/Extensions/AMDRadeonX6000Framebuffer.kext/Contents/MacOS/AMDRadeonX6000Framebuffer" };
 static const char *pathLegacyFramebuffer[]	{ "/System/Library/Extensions/AMDLegacyFramebuffer.kext/Contents/MacOS/AMDLegacyFramebuffer" };
-static const char *pathSupport[]			{ "/System/Library/Extensions/AMDSupport.kext/Contents/MacOS/AMDSupport" };
 static const char *pathLegacySupport[]		{ "/System/Library/Extensions/AMDLegacySupport.kext/Contents/MacOS/AMDLegacySupport" };
 static const char *pathRadeonX3000[]        { "/System/Library/Extensions/AMDRadeonX3000.kext/Contents/MacOS/AMDRadeonX3000" };
 static const char *pathRadeonX4000[]        { "/System/Library/Extensions/AMDRadeonX4000.kext/Contents/MacOS/AMDRadeonX4000" };
@@ -30,6 +36,7 @@ static const char *pathRadeonX5000[]        { "/System/Library/Extensions/AMDRad
 static const char *pathRadeonX6000[]        { "/System/Library/Extensions/AMDRadeonX6000.kext/Contents/MacOS/AMDRadeonX6000" };
 static const char *patchPolarisController[] { "/System/Library/Extensions/AMD9500Controller.kext/Contents/MacOS/AMD9500Controller" };
 
+static const char *idRadeonAccel    {"com.apple.AMDRadeonAccelerator"};
 static const char *idRadeonX3000New {"com.apple.kext.AMDRadeonX3000"};
 static const char *idRadeonX4000New {"com.apple.kext.AMDRadeonX4000"};
 static const char *idRadeonX4100New {"com.apple.kext.AMDRadeonX4100"};
@@ -55,6 +62,7 @@ static KernelPatcher::KextInfo kextRadeonX6000Framebuffer
 { "com.apple.kext.AMDRadeonX6000Framebuffer", pathRedeonX6000Framebuffer, arrsize(pathRedeonX6000Framebuffer), {}, {}, KernelPatcher::KextInfo::Unloaded };
 
 static KernelPatcher::KextInfo kextRadeonHardware[RAD::MaxRadeonHardware] {
+	[RAD::IndexRadeonAccelerator  ] = { idRadeonAccel   , pathRadeonAccel, arrsize(pathRadeonAccel), {}, {}, KernelPatcher::KextInfo::Unloaded },
 	[RAD::IndexRadeonHardwareX3000] = { idRadeonX3000New, pathRadeonX3000, arrsize(pathRadeonX3000), {}, {}, KernelPatcher::KextInfo::Unloaded },
 	[RAD::IndexRadeonHardwareX4100] = { idRadeonX4100New, pathRadeonX4100, arrsize(pathRadeonX4100), {}, {}, KernelPatcher::KextInfo::Unloaded },
 	[RAD::IndexRadeonHardwareX4150] = { idRadeonX4150New, pathRadeonX4150, arrsize(pathRadeonX4150), {}, {}, KernelPatcher::KextInfo::Unloaded },
@@ -92,10 +100,15 @@ void RAD::init(bool enableNavi10Bkl) {
 	useCustomAgdpDecision = getKernelVersion() >= KernelVersion::Catalina;
 
 	// Certain displays do not support 32-bit colour output, so we have to force 24-bit.
-	if (getKernelVersion() >= KernelVersion::Sierra && force24BppMode) {
+	if (force24BppMode) {
+		if (getKernelVersion() == KernelVersion::MountainLion) {
+			kextRadeonFramebuffer.paths = pathMLFramebuffer;
+			kextRadeonFramebuffer.pathNum = arrsize(pathMLFramebuffer);
+		}
+		
 		lilu.onKextLoadForce(&kextRadeonFramebuffer);
 		// Mojave dropped legacy GPU support (5xxx and 6xxx).
-		if (getKernelVersion() < KernelVersion::Mojave)
+		if (getKernelVersion() >= KernelVersion::Sierra && getKernelVersion() < KernelVersion::Mojave)
 			lilu.onKextLoadForce(&kextRadeonLegacyFramebuffer);
 	}
 	
@@ -119,11 +132,17 @@ void RAD::init(bool enableNavi10Bkl) {
 	forceCodecInfo = checkKernelArgument("-radcodec");
 
 	// To support overriding connectors and -radvesa mode we need to patch AMDSupport.
+	if (getKernelVersion() == KernelVersion::MountainLion) {
+		kextRadeonSupport.paths = pathMLSupport;
+		kextRadeonSupport.pathNum = arrsize(pathMLSupport);
+	}
+	
 	lilu.onKextLoadForce(&kextRadeonSupport);
+	
 	// Mojave dropped legacy GPU support (5xxx and 6xxx).
-	if (getKernelVersion() < KernelVersion::Mojave)
+	if (getKernelVersion() >= KernelVersion::Sierra && getKernelVersion() < KernelVersion::Mojave)
 		lilu.onKextLoadForce(&kextRadeonLegacySupport);
-	else
+	else if (getKernelVersion() >= KernelVersion::Mojave)
 		lilu.onKextLoadForce(&kextPolarisController);
 
 	initHardwareKextMods();
@@ -345,6 +364,11 @@ bool RAD::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t ad
 			KernelPatcher::RouteRequest request("__ZN16AtiDeviceControl16notifyLinkChangeE31kAGDCRegisterLinkControlEvent_tmj", wrapNotifyLinkChange, orgNotifyLinkChange);
 			patcher.routeMultiple(index, &request, 1, address, size);
 		}
+		
+		if (getKernelVersion() == KernelVersion::MountainLion) {
+			KernelPatcher::RouteRequest request("__ZN16AtiAtomBiosDce6031getPropertiesForConnectorObjectEtR13ConnectorInfo", wrapGetConnProps, orgGetConnProps);
+			patcher.routeMultiple(index, &request, 1, address, size);
+		}
 
 		return true;
 	}
@@ -380,6 +404,8 @@ void RAD::initHardwareKextMods() {
 		maxHardwareKexts = MaxRadeonHardwareMojave;
 	else if (getKernelVersion() == KernelVersion::HighSierra && getKernelMinorVersion() >= 5)
 		maxHardwareKexts = MaxRadeonHardwareModernHighSierra;
+	else if (getKernelVersion() == KernelVersion::MountainLion)
+		maxHardwareKexts = MaxRadeonHardwareMountainLion;
 
 	// 10.13.4 fixed black screen issues
 	if (maxHardwareKexts != MaxRadeonHardware) {
@@ -393,7 +419,7 @@ void RAD::initHardwareKextMods() {
 			kextRadeonHardware[IndexRadeonHardwareX6000].switchOff();
 		}
 	}
-
+	
 	if (getKernelVersion() < KernelVersion::Catalina) {
 		kextRadeonHardware[IndexRadeonHardwareX6000].switchOff();
 	}
@@ -419,6 +445,14 @@ void RAD::initHardwareKextMods() {
 			kextRadeonHardware[IndexRadeonHardwareX4150].switchOff();
 			kextRadeonHardware[IndexRadeonHardwareX4200].switchOff();
 		}
+	}
+	
+	if (getKernelVersion() == KernelVersion::MountainLion) {
+		// X3000 and X4000 got combined into AMDRadeonAccelerator
+		kextRadeonHardware[IndexRadeonHardwareX3000].switchOff();
+		kextRadeonHardware[IndexRadeonHardwareX4000].switchOff();
+	} else {
+		kextRadeonHardware[IndexRadeonAccelerator].switchOff();
 	}
 
 	lilu.onKextLoadForce(kextRadeonHardware, maxHardwareKexts);
@@ -536,7 +570,7 @@ void RAD::processHardwareKext(KernelPatcher &patcher, size_t hwIndex, mach_vm_ad
 
 	// Fix reported Accelerator name to support WhateverName.app
 	// Also fix GVA properties for X4000.
-	if (fixConfigName || hwIndex == IndexRadeonHardwareX4000) {
+	if (fixConfigName || hwIndex == IndexRadeonHardwareX4000 || hwIndex == IndexRadeonAccelerator) {
 		KernelPatcher::RouteRequest request(populateAccelConfigProcNames[hwIndex], wrapPopulateAccelConfig[hwIndex], orgPopulateAccelConfig[hwIndex]);
 		patcher.routeMultiple(hardware.loadIndex, &request, 1, address, size);
 	}
@@ -762,6 +796,19 @@ void RAD::autocorrectConnectors(uint8_t *baseAddr, AtomDisplayObjectPath *displa
 
 		autocorrectConnector(getConnectorID(displayPaths[i].usConnObjectId), sense, txmit, enc, connectors, sz);
 	}
+}
+
+IOReturn RAD::wrapGetConnProps(void *atomBiosDce60, uint8_t object_id, RADConnectors::LegacyConnector *con) {
+	if (object_id == CONNECTOR_OBJECT_ID_LVDS_eDP) {
+		SYSLOG("rad", "Correcting LVDS-eDP Connector - Original Flags 0x%x Features 0x%x Hotplug 0x%x", con->flags, con->features, con->hotplug);
+		con->flags |= 0x040; // LVDS
+//		con->flags |= 0x100; // DP
+		con->features |= 0x909;
+		con->type = RADConnectors::ConnectorLVDS;
+		return kIOReturnSuccess;
+	}
+	
+	return callbackRAD->orgGetConnProps(atomBiosDce60, object_id, con);
 }
 
 void RAD::autocorrectConnector(uint8_t connector, uint8_t sense, uint8_t txmit, uint8_t enc, RADConnectors::Connector *connectors, uint8_t sz) {
@@ -1013,7 +1060,7 @@ void RAD::updateAccelConfig(size_t hwIndex, IOService *accelService, const char 
 			}
 		}
 
-		if (enableGvaSupport && hwIndex == IndexRadeonHardwareX4000) {
+		if (enableGvaSupport && (hwIndex == IndexRadeonHardwareX4000 || hwIndex == IndexRadeonAccelerator)) {
 			setGvaProperties(accelService);
 		}
 	}

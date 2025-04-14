@@ -1,7 +1,7 @@
 WhateverGreen
 =============
 
-[![Build Status](https://github.com/acidanthera/WhateverGreen/workflows/CI/badge.svg?branch=master)](https://github.com/acidanthera/WhateverGreen/actions) [![Scan Status](https://scan.coverity.com/projects/16177/badge.svg?flat=1)](https://scan.coverity.com/projects/16177)
+[![Build Status](https://github.com/acidanthera/WhateverGreen/actions/workflows/main.yml/badge.svg?branch=master)](https://github.com/acidanthera/WhateverGreen/actions) [![Scan Status](https://scan.coverity.com/projects/16177/badge.svg?flat=1)](https://scan.coverity.com/projects/16177)
 
 [Lilu](https://github.com/acidanthera/Lilu) plugin providing patches to select GPUs on macOS. Requires Lilu 1.5.6 or newer.
 
@@ -40,7 +40,7 @@ WhateverGreen
 
 #### Documentation
 
-Read [FAQs](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/) and avoid asking any questions. No support is provided for the time being.
+Read [FAQs](./Manual/) and avoid asking any questions. No support is provided for the time being.
 
 #### Boot arguments
 
@@ -49,7 +49,7 @@ Read [FAQs](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/) an
 | Boot argument 	| DeviceProperties 	| Description 	|
 |---	|---	|---	|
 | `-cdfon` 			  | `enable-hdmi20`  | Enable HDMI 2.0 patches on iGPU and dGPU (Not implemented for macOS 11+)  |
-| `-wegbeta` 		  | N/A 	| Enable WhateverGreen on unsupported OS versions (13 and below are enabled by default) 	|
+| `-wegbeta` 		  | N/A 	| Enable WhateverGreen on unsupported OS versions (15 and below are enabled by default) 	|
 | `-wegdbg` 		  | N/A 	| Enable debug printing (available in DEBUG binaries) 	|
 | `-wegoff` 		  | N/A 	| Disable WhateverGreen 	|
 
@@ -69,7 +69,7 @@ Read [FAQs](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/) an
 | `-radcodec` 		| N/A 	| Force the spoofed PID to be used in AMDRadeonVADriver 	|
 | `-raddvi` 		  | N/A 	| Enable DVI transmitter correction (required for 290X, 370, etc.) 	|
 | `-radvesa` 		  | N/A 	| Disable ATI/AMD video acceleration completely 	|
-| `radpg=15` 		  | N/A 	| Disable several power-gating modes (see [FAQ Radeon](https://github.com/dreamwhite/WhateverGreen/blob/master/Manual/FAQ.Radeon.en.md), required for Cape Verde GPUs: Radeon HD 7730/7750/7770/R7 250/R7 250X) 	|
+| `radpg=15` 		  | N/A 	| Disable several power-gating modes (see [FAQ Radeon](./Manual/FAQ.Radeon.en.md), required for Cape Verde GPUs: Radeon HD 7730/7750/7770/R7 250/R7 250X) 	|
 
 ##### Board-id
 
@@ -93,15 +93,16 @@ Read [FAQs](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/) an
 | Boot argument 	  | DeviceProperties 	| Description 	|
 |---	|---	|---	  |
 | `-igfxblr` 		    | `enable-backlight-registers-fix` property on IGPU 	| Fix backlight registers on KBL, CFL and ICL platforms 	|
-| `-igfxbls` 		    | `enable-backlight-smoother` property on IGPU 	| Make brightness transitions smoother on IVB+ platforms. [Read the manual](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/FAQ.IntelHD.en.md#customize-the-behavior-of-the-backlight-smoother-to-improve-your-experience) 	|
-| `-igfxcdc` 		    | `enable-cdclk-frequency-fix` property on IGPU 	| Support all valid Core Display Clock (CDCLK) frequencies on ICL platforms. [Read the manual](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/FAQ.IntelHD.en.md#support-all-possible-core-display-clock-cdclk-frequencies-on-icl-platforms) 	 |
-| `-igfxdbeo` 		  | `enable-dbuf-early-optimizer` property on IGPU 	| Fix the Display Data Buffer (DBUF) issues on ICL+ platforms. [Read the manual](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/FAQ.IntelHD.en.md#fix-the-issue-that-the-builtin-display-remains-garbled-after-the-system-boots-on-icl-platforms) 	|
+| `-igfxbls` 		    | `enable-backlight-smoother` property on IGPU 	| Make brightness transitions smoother on IVB+ platforms. [Read the manual](./Manual/FAQ.IntelHD.en.md#customize-the-behavior-of-the-backlight-smoother-to-improve-your-experience) 	|
+| `-igfxblt` | `enable-backlight-registers-alternative-fix` property on IGPU  | An alternative to the Backlight Registers Fix and make Backlight Smoother work on KBL/CFL platforms running macOS 13.4 or later. [Read the manual](./Manual/FAQ.IntelHD.en.md#fix-the-3-minute-black-screen-issue-on-cfl-platforms-running-macos-134-or-later) |
+| `-igfxcdc` 		    | `enable-cdclk-frequency-fix` property on IGPU 	| Support all valid Core Display Clock (CDCLK) frequencies on ICL platforms. [Read the manual](./Manual/FAQ.IntelHD.en.md#support-all-possible-core-display-clock-cdclk-frequencies-on-icl-platforms) 	 |
+| `-igfxdbeo` 		  | `enable-dbuf-early-optimizer` property on IGPU 	| Fix the Display Data Buffer (DBUF) issues on ICL+ platforms. [Read the manual](./Manual/FAQ.IntelHD.en.md#fix-the-issue-that-the-builtin-display-remains-garbled-after-the-system-boots-on-icl-platforms) 	|
 | `-igfxdump` 		  | N/A 	| Dump IGPU framebuffer kext to `/var/log/AppleIntelFramebuffer_X_Y` (available in DEBUG binaries) 	|
 | `-igfxdvmt` 		  | `enable-dvmt-calc-fix` property on IGPU 	| Fix the kernel panic caused by an incorrectly calculated amount of DVMT pre-allocated memory on Intel ICL platforms 	|
 | `-igfxfbdump` 		| N/A 	| Dump native and patched framebuffer table to ioreg at `IOService:/IOResources/WhateverGreen` 	|
 | `-igfxhdmidivs` 	| `enable-hdmi-dividers-fix` property on IGPU 	| Fix the infinite loop on establishing Intel HDMI connections with a higher pixel clock rate on SKL, KBL and CFL platforms 	|
 | `-igfxi2cdbg` 	  | N/A 	| Enable verbose output in I2C-over-AUX transactions (only for debugging purposes) 	|
-| `-igfxlspcon` 	  | `enable-lspcon-support` property on IGPU 	| Enable the driver support for onboard LSPCON chips.<br> [Read the manual](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/FAQ.IntelHD.en.md#lspcon-driver-support-to-enable-displayport-to-hdmi-20-output-on-igpu) 	|
+| `-igfxlspcon` 	  | `enable-lspcon-support` property on IGPU 	| Enable the driver support for onboard LSPCON chips.<br> [Read the manual](./Manual/FAQ.IntelHD.en.md#lspcon-driver-support-to-enable-displayport-to-hdmi-20-output-on-igpu) 	|
 | `-igfxmlr` 		    | `enable-dpcd-max-link-rate-fix` property on IGPU 	| Apply the maximum link rate fix 	|
 | `-igfxmpc` 		    | `enable-max-pixel-clock-override` and `max-pixel-clock-frequency` properties on IGPU 	| Increase max pixel clock (as an alternative to patching `CoreDisplay.framework` 	|
 | `-igfxnohdmi` 	  | `disable-hdmi-patches` 	| Disable DP to HDMI conversion patches for digital sound 	|
@@ -126,8 +127,8 @@ Read [FAQs](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/) an
 
 | Boot argument 	| DeviceProperties 	| Description 	|
 |---	|---	|---	|
-| `applbkl=3` 		| `applbkl` property 	| Enable PWM backlight control of AMD Radeon RX 5000 series graphic cards [read here.](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/FAQ.Radeon.en.md) 	|
-| `applbkl=0` 		| `applbkl` property on IGPU 	| Disable AppleBacklight.kext patches for IGPU. <br>In case of custom AppleBacklight profile [read here](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/FAQ.OldPlugins.en.md) 	|
+| `applbkl=3` 		| `applbkl` property 	| Enable PWM backlight control of AMD Radeon RX 5000 series graphic cards [read here.](./Manual/FAQ.Radeon.en.md) 	|
+| `applbkl=0` 		| `applbkl` property on IGPU 	| Disable AppleBacklight.kext patches for IGPU. <br>In case of custom AppleBacklight profile [read here](./Manual/FAQ.OldPlugins.en.md) 	|
 
 ##### 2nd Boot stage
 
@@ -147,8 +148,8 @@ Read [FAQs](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/) an
 - [Apple](https://www.apple.com) for macOS
 - [AMD](https://www.amd.com) for ATOM VBIOS parsing code
 - [The PCI ID Repository](http://pci-ids.ucw.cz) for multiple GPU model names
-- [Andrey1970AppleLife](https://github.com/Andrey1970AppleLife) for [FAQs](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/)
-- [FireWolf](https://github.com/0xFireWolf/) for the DPCD maximum link rate fix, infinite loop fix for Intel HDMI connections, LSPCON driver support, Core Display Clock frequency fix for ICL platforms, DVMT pre-allocated memory calculation fix for ICL platforms, Backlight Smoother for IVB+ platforms, and Display Data Buffer fix for ICL platforms.
+- [Andrey1970AppleLife](https://github.com/Andrey1970AppleLife) for [FAQs](./Manual/)
+- [FireWolf](https://github.com/0xFireWolf/) for the DPCD maximum link rate fix, infinite loop fix for Intel HDMI connections, LSPCON driver support, Core Display Clock frequency fix for ICL platforms, DVMT pre-allocated memory calculation fix for ICL platforms, Backlight Smoother for IVB+ platforms, Display Data Buffer fix for ICL platforms, and Backlight Registers Alternative Fix.
 - [Floris497](https://github.com/Floris497) for the CoreDisplay [patches](https://github.com/Floris497/mac-pixel-clock-patch-v2)
 - [Fraxul](https://github.com/Fraxul) for original CFL backlight patch
 - [headkaze](https://github.com/headkaze) for Intel framebuffer patching code and CFL backlight patch improvements

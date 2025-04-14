@@ -1046,11 +1046,11 @@ Mobile: 0, PipeCount: 2, PortCount: 2, FBMemoryCount: 2
 
 > Officially supported since OS X 10.11.4 to macOS 12.x. On newer operating systems, spoofing as Kaby Lake is required [or use OCLP.](https://github.com/dortania/OpenCore-Legacy-Patcher/)  
 
-***Spoof Skylake as Kaby Lake on macOS 13***
+***Spoof Skylake as Kaby Lake on macOS 13+***
 
 Make sure that WhateverGreen v1.6.0 or above is used. Then, it is necessary to fake `device-id` and choose an `ig-platform-id` from Kaby Lake that is closest to the Skylake model (e.g. HD 530 to HD 630). In case of incompatibility, try a different `device-id` and the corresponding `ig-platform-id`. Experiments are the best practice to figure out which ID will best fit.
 
-In addition to using the latest version of WhateverGreen, `AAPL,GfxYTile` with value `01 00 00 00` may be injected together with `ig-platform-id` to avoid glitches. For more details, please refer to [acidanthera/bugtracker#483](https://github.com/acidanthera/bugtracker/issues/2088#issuecomment-1381357651).
+In addition to using the latest version of WhateverGreen, `AAPL,GfxYTile` with value `01000000` may be injected together with `ig-platform-id` to avoid glitches. For more details, please refer to [acidanthera/bugtracker#483](https://github.com/acidanthera/bugtracker/issues/2088#issuecomment-1381357651).
 
 ***SKL framebuffer list:***
 
@@ -2671,6 +2671,14 @@ igfx: @ (DBG) BLS: [COMM] Processing the request: Current = 0x00014ead; Target =
 
 </details>
 
+## Fix the 3-minute black screen issue on KBL/CFL platforms running macOS 13.4 or later
+
+If you have a KBL/CFL-based laptop and rely on the Backlight Registers Fix (BLR) to fix the 3-minute black screen issue, you may notice that BLR (`-igfxblr`) no longer work on macOS 13.4 or later. This is because Apple has simplified the implementation of the functions, `ReadRegister32` and `WriteRegister32`, in Kaby/Coffee Lake's framebuffer drivers shipped by macOS 13.4, so the compiler chose to inline invocations of those functions as many as possible. As a result, the `WriteRegister32` hooks registered by the Backlight Registers Fix (BLR) and the Backlight Smoother (BLS) submodules no longer work. Starting from v1.6.5, WEG can revert the optimizations done by the compiler in backlight related functions, provide an alternative to BLR and make BLS work properly on macOS 13.4 or later. Starting from v1.6.6, WEG supports Kaby Lake platforms.
+
+Note that this alternative fix is only available for users who have laptops using Kaby Lake's or Coffee Lake's graphics driver and running macOS 13.4 or later. You can add the property `enable-backlight-registers-alternative-fix` to `IGPU` or use the boot argument `-igfxblt` to enable this new fix and remove the boot argument `-igfxblr` and/or the device property `enable-backlight-registers-fix`. If you wish to use the Backlight Smoother on macOS 13.4 or later, you need to add both `-igfxblt` and `-igfxbls` to the boot arguments.
+
+Note that Ice Lake platforms are not affected because `WriteRegister32` is not inlined in backlight related functions.
+
 ## Fix the issue that the builtin display remains garbled after the system boots on ICL platforms
 
 Add the `enable-dbuf-early-optimizer` property to `IGPU` or use the `-igfxdbeo` boot argument instead to fix the Display Data Buffer (DBUF) allocation issue on ICL platforms, 
@@ -2711,7 +2719,7 @@ Starting from v1.5.5, the default delay is changed to 1 second, so in most cases
 - "8 apples" and the disappearance of the background image with File Vault 2 during the transition from UEFI GOP drivers to macOS drivers (due to incompatible EDID). Partially solved in *WEG*.  
 - PAVP freezes (freezes during video playback, broken QuickLook, etc.) are solved with *WEG* at the cost of disabling HDCP.  
 - Haswell glitches for some framebuffers are resolved with a semantic `framebuffer-cursormem` patch.  
-- In macOS 10.14 оn some laptops with KBL graphics one may face visual artifacts on the gradients. For a temporary solution try to fake IGPU to use SKL drivers.  
+- In macOS 10.14 оn some laptops with KBL graphics one may face visual artifacts on the gradients. In certain cases can help `AAPL,GfxYTile` with value `01000000` or for a temporary solution try to fake IGPU to use SKL drivers.  
 - The several minutes black screen upon OS boot with mobile CFL is fixed by *WEG*.  
 - The absence in BIOS of an option to change the amount of memory for the frame buffer is resolved with either semantic `framebuffer-stolenmem` and `framebuffer-fbmem` patches, by modifying the BIOS or by manually inputting the values in UEFI Shell. **Otherwise you get a panic.** [Explanation](https://www.applelife.ru/posts/750369)  
 - Some systems with IGPUs (e.g. KBL and CFL) may cause system instability in lower power states. Sometimes it can be noticed by NVMe kernel panics. The generally available workaround is passing `forceRenderStandby=0` to kernel boot arguments to disable RC6 Render Standby. See [this issue](https://github.com/acidanthera/bugtracker/issues/1193) for more details.

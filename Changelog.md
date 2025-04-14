@@ -1,5 +1,23 @@
-WhateverGreen Changelog
+ WhateverGreen Changelog
 =======================
+#### v1.6.9
+- Added Alder Lake/Raptor Lake/Arrow Lake CPU detection
+
+#### v1.6.8
+- Fixed loading on macOS 10.10 and older due to a MacKernelSDK regression
+
+#### v1.6.7
+- Added constants for macOS 15 support
+- Fixed short-circuit evaluation from brightness bound overrides, thanks @damiponce and Gwy
+
+#### v1.6.6
+- Extended the Backlight Registers Alternative Fix (BLT) submodule to support both KBL and CFL platforms. (by @0xFireWolf)
+- Revised the Backlight Registers Fix (BLR) submodule to make it compatible with the Backlight Smoother (BLS) on KBL platforms. (by @0xFireWolf)
+
+#### v1.6.5
+- Added constants for macOS 14 support
+- Added a new boot argument `-igfxblt` to revert the optimizations done by the compiler in backlight related functions, fixing the 3-minute dark screen issue and making Backlight Smoother (BLS) work on mobile Coffee Lake platforms running macOS 13.4 or later. (by @0xFireWolf)
+
 #### v1.6.4
 - Fixed Radeon RX 5500 XT identification regression
 
